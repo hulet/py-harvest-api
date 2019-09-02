@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+import re
 from datetime import datetime
 from harvest.auth import PersonalAccessAuthClient
 from harvest.api import Projects
@@ -66,7 +67,14 @@ if __name__ == '__main__':
                 else:
                     project_id_list.append(config.get('projects', entry))
             try:
-                hours = sys.argv[HOURS]
+                if re.match(r'[0-9]+:[0-9]+', sys.argv[HOURS]):
+                    hours, minutes = sys.argv[HOURS].strip().split(':')
+                    hours = (1.0 / 60) * float(int(minutes) + (int(hours) * 60))
+                elif re.match(r'[0-9]+\.[0-9]+', sys.argv[HOURS]):
+                    hours = float(sys.argv[HOURS])
+                else:
+                    raise Exception('Format not supported: {}'.format(sys.argv[HOURS]))
+                hours = hours / len(project_id_list)
             except IndexError:
                 hours = 0.00
             for project_id in project_id_list:
