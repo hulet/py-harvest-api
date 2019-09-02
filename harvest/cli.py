@@ -66,7 +66,7 @@ if __name__ == '__main__':
                 else:
                     project_id_list.append(config.get('projects', entry))
             try:
-                hours = float(sys.argv[HOURS])
+                hours = sys.argv[HOURS]
             except IndexError:
                 hours = 0.00
             for project_id in project_id_list:
