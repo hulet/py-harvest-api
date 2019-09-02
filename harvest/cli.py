@@ -1,3 +1,4 @@
+import os
 import sys
 import logging
 from datetime import datetime
@@ -7,13 +8,23 @@ from harvest.api import Tasks
 from harvest.api import TimeEntry
 from harvest.services import AllProjects
 from harvest.services import AllTasks
+try:
+    from ConfigParser import ConfigParser
+except ModuleNotFoundError as ex:
+    from configparser import ConfigParser
 
 
 if __name__ == '__main__':
     # logging.basicConfig(level=logging.DEBUG)
     client = PersonalAccessAuthClient(
-        cfg='harvest.cfg'
+        # cfg='.harvest.cfg'
     )
+    cfg = os.environ.get(
+        'HARVEST_CFG',
+        os.path.expanduser('~/.harvest.cfg'),
+    )
+    config = ConfigParser()
+    config.read(cfg)
     if sys.argv[1] == 'projects':
         api = Projects(client)
         if sys.argv[2] == 'get':
@@ -41,10 +52,19 @@ if __name__ == '__main__':
             spent_date = sys.argv[SPENTDATE_ARG]
             if spent_date == 'today':
                 spent_date = datetime.now().strftime('%Y-%m-%d')
+
             task_id = sys.argv[TASKID_ARG]
+            if not task_id.isnumeric():
+                task_id = config.get('tasks', task_id)
+
             if not sys.argv[PROJECTID_ARG]:
                 logging.info('Missing project(s) ID list')
-            project_id_list = sys.argv[PROJECTID_ARG].split(',')
+            project_id_list = []
+            for entry in sys.argv[PROJECTID_ARG].split(','):
+                if entry.isnumeric():
+                    project_id_list.append(entry)
+                else:
+                    project_id_list.append(config.get('projects', entry))
             try:
                 hours = float(sys.argv[HOURS])
             except IndexError:
