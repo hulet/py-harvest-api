@@ -38,6 +38,24 @@ resp = api.get(params={
 
 ### Module CLI
 
+#### Configuration File
+
+```
+[authentication]
+token=(\w|\.\-)+
+account_id=[0-9]+
+
+[projects]
+project_0=[0-9]+
+project_1=[0-9]+
+
+[tasks]
+meeting=[0-9]+
+development=[0-9]+
+```
+
+#### Usage
+
 - Get all projects
 
 ```
@@ -46,6 +64,8 @@ python -m harvest.cli projects get all
 
 - Get all tasks
 
+This one is currently not working with the personal token.
+
 ```
 python -m harvest.cli tasks get all
 ```
@@ -53,21 +73,36 @@ python -m harvest.cli tasks get all
 - Create time entry
 
 ```
-python -m harvest.cli timeentry new [entry note] [date] [task id] [project id]
+python -m harvest.cli timeentry new [entry note] [date] [task id] [project id] [hours]
 ```
 
 Examples:
 
-- One project for today
+- 30 Minutes of meeting on project_0
 
 ```
-python -m harvest.cli timeentry new "Hello world" today 9999999 8888888
+python -m harvest.cli timeentry new "Hello world" today meeting project_0 0:30
 ```
 
-- More than one project for today
+or
 
 ```
-python -m harvest.cli timeentry new "Hello world" today 9999999 8888888,7777777
+python -m harvest.cli timeentry new "Hello world" today meeting project_0 0.50
+```
+
+- 30m of development for each project_0 and project_1
+
+Every time we try to split the amount of hours between the number of projects
+that are passed through the args
+
+```
+python -m harvest.cli timeentry new "Hello world" today development project_0,project_1 1:00
+```
+
+or
+
+```
+python -m harvest.cli timeentry new "Hello world" today development project_0,project_1 1.00
 ```
 
 ## Tests
