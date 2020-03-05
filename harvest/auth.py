@@ -1,9 +1,12 @@
 import os
+import logging
 try:
     from ConfigParser import ConfigParser
 except ModuleNotFoundError as ex:
     from configparser import ConfigParser
 
+
+logger = logging.getLogger('Harvest Auth')
 
 HARVEST_DEBUG = int(os.environ.get('HARVEST_DEBUG', 0))
 
@@ -45,4 +48,5 @@ class PersonalAccessAuthClient(Client):
             'Authorization': 'Bearer {}'.format(self.token),
             'User-Agent': 'Harvest API - Python',
         }
+        logger.debug(ret)
         return ret

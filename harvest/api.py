@@ -3,7 +3,9 @@ import requests
 import logging
 
 
-logging.basicConfig(level=os.environ.get("HARVEST_LOGLEVEL", "DEBUG"))
+LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO')
+logging.basicConfig(level=LOGLEVEL)
+logger = logging.getLogger('Harvest API')
 
 
 class Endpoint(object):
@@ -22,17 +24,17 @@ class Endpoint(object):
         params = kwargs.get('params', {})
         headers = self.client.get_headers()
         headers.update(kwargs.get('headers', {}))
-        logging.debug('HTTP - GET - Request - URL {}'.format(url))
-        logging.debug('HTTP - GET - Request - Params '.format(params))
-        logging.debug('HTTP - GET - Request - Headers {}'.format(headers))
+        logger.debug('HTTP - GET - Request - URL {}'.format(url))
+        logger.debug('HTTP - GET - Request - Params '.format(params))
+        logger.debug('HTTP - GET - Request - Headers {}'.format(headers))
         resp = requests.get(
             url=url,
             headers=headers,
             params=params,
         )
-        logging.debug('HTTP - GET - Response - status code - {}'.format(
+        logger.debug('HTTP - GET - Response - status code - {}'.format(
             resp.status_code))
-        logging.debug('HTTP - GET - Response - content - {}'.format(
+        logger.debug('HTTP - GET - Response - content - {}'.format(
             resp.content))
         return resp
 
@@ -41,16 +43,16 @@ class Endpoint(object):
         params = kwargs.get('params', {})
         data = kwargs.get('data', {})
         headers = self.client.get_headers()
-        logging.debug('HTTP - POST - URL {}'.format(url))
-        logging.debug('HTTP - POST - Params '.format(params))
-        logging.debug('HTTP - POST - Headers {}'.format(headers))
+        logger.debug('HTTP - POST - URL {}'.format(url))
+        logger.debug('HTTP - POST - Params '.format(params))
+        logger.debug('HTTP - POST - Headers {}'.format(headers))
         resp = requests.post(
             url=url,
             headers=headers,
             params=params,
             data=data,
         )
-        logging.debug('HTTP - POST - Response {}'.format(resp.content))
+        logger.debug('HTTP - POST - Response {}'.format(resp.content))
         return resp
 
 
@@ -64,22 +66,36 @@ class Tasks(Endpoint):
     path = '/tasks'
 
     '''
-    GET:
-        is_active (boolean):
-            Pass true to only return active tasks and false to return inactive
-            tasks.
-        updated_since (datetime):
-            Only return tasks that have been updated since the given date and
-            time.
-        page (integer):
-            The page number to use in pagination. For instance, if you make a
-            list request and receive 100 records, your subsequent call can
-            include page=2 to retrieve the next page of the list. (Default: 1)
-        per_page (integer):
-            The number of records to return per page. Can range between 1 and
-            100. (Default: 100)
+    Entity:
+        {
+          "id":8083800,
+          "name":"Business Development",
+          "billable_by_default":false,
+          "default_hourly_rate":0.0,
+          "is_default":false,
+          "is_active":true,
+          "created_at":"2017-06-26T22:08:25Z",
+          "updated_at":"2017-06-26T22:08:25Z"
+        }
 
-    POST:
+    HTTP Methods:
+        GET:
+            is_active (boolean):
+                Pass true to only return active tasks and false to return
+                inactive tasks.
+            updated_since (datetime):
+                Only return tasks that have been updated since the given date
+                and time.
+            page (integer):
+                The page number to use in pagination. For instance, if you
+                make a list request and receive 100 records, your subsequent
+                call can include page=2 to retrieve the next page of the list.
+                (Default: 1)
+            per_page (integer):
+                The number of records to return per page. Can range between 1
+                and 100. (Default: 100)
+
+        POST:
     '''
 
 

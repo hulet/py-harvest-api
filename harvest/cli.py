@@ -2,6 +2,7 @@ import os
 import sys
 import logging
 import re
+import argparse
 from datetime import datetime
 from harvest.auth import PersonalAccessAuthClient
 from harvest.api import Projects
@@ -14,8 +15,11 @@ try:
 except ModuleNotFoundError as ex:
     from configparser import ConfigParser
 
+LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO')
+logging.basicConfig(level=LOGLEVEL)
+logger_hvt = logging.getLogger('Harvest CLI')
 
-if __name__ == '__main__':
+def old_main():
     # logging.basicConfig(level=logging.DEBUG)
     client = PersonalAccessAuthClient(
         # cfg='.harvest.cfg'
@@ -86,3 +90,94 @@ if __name__ == '__main__':
                     'hours': hours,
                 }
                 TimeEntry(client).post(data=data)
+
+
+class BaseAction(argparse.Action):
+
+    def __init__(self, **kwargs):
+        super(BaseAction, self).__init__(**kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        self.cmd(namespace)
+
+    def cmd(self, namespace):
+        raise NotImplementedError(_('.cmd() not defined'))
+
+
+class TimeEntryNew(BaseAction):
+
+    def cmd(self, namespace):
+        logging.debug(namespace)
+        if namespace.spent_date == 'today':
+            pass
+        for project_id in namespace.project_id:
+            payload = {
+                'notes': namespace.notes,
+                'project_id': project_id,
+                'spent_date': namespace.spent_date,
+                'hours': namespace.hours,
+                'task_id': namespace.task_id,
+            }
+            print(payload)
+
+
+class ProjectList(BaseAction):
+
+    def cmd(self, namespace):
+        logger_hvt.debug(namespace)
+        for entity in AllProjects(cfg='harvest.cfg').all():
+            logger_hvt.info('#{}\t{}'.format(
+                entity['id'],
+                entity['name'], 
+                ))
+
+
+class TasksList(BaseAction):
+
+    def cmd(self, namespace):
+        logger_hvt.debug(namespace)
+        for entity in AllTasks(cfg='harvest.cfg').all():
+            logger_hvt.info('#{}\t{}'.format(
+                entity['id'],
+                entity['name'], 
+                ))
+
+
+if __name__ == '__main__':
+    # Root (rt)
+    rt_parser = argparse.ArgumentParser(
+            prog='harvest',
+            description='unofficial harvest cli',
+            )
+    rt_sbparsers = rt_parser.add_subparsers(help='sub-command help')
+    
+    # Time Entry (te)
+    te_parser = rt_sbparsers.add_parser('timeentry')
+    te_sbparsers = te_parser.add_subparsers(help='time entry management')
+
+    # Time Entry (te) actions
+    te_new_parser = te_sbparsers.add_parser('new', help='create new time entry')
+    te_new_parser.add_argument('project_id', nargs='+', type=str, help="one or more project id's")
+    te_new_parser.add_argument('task_id', help='single task id')
+    te_new_parser.add_argument('notes', type=str, help='description of entry')
+    te_new_parser.add_argument('--hours', default=0, help='hours spent (default: 0)')
+    te_new_parser.add_argument('--spent_date', type=str, default='today', help='date entry happend (default: today)')
+    te_new_parser.add_argument('run', nargs=0, action=TimeEntryNew, help=argparse.SUPPRESS)
+
+    # Projects (pj)
+    pj_parser = rt_sbparsers.add_parser('project')
+    pj_sbparsers = pj_parser.add_subparsers(help='project entity management')
+
+    # Projects (pj) actions
+    pj_list_parser = pj_sbparsers.add_parser('list', help='retrieve a list of current projects')
+    pj_list_parser.add_argument('run', nargs=0, action=ProjectList, help=argparse.SUPPRESS)
+
+    # Tasks (tk)
+    tk_parser = rt_sbparsers.add_parser('tasks')
+    tk_sbparser = tk_parser.add_subparsers(help='tasks management')
+
+    # Tasks (tk) actions
+    tk_list_parser = tk_sbparser.add_parser('list', help='retrieve a list of registered tasks')
+    tk_list_parser.add_argument('run', nargs=0, action=TasksList, help=argparse.SUPPRESS)
+
+    args = rt_parser.parse_args()
