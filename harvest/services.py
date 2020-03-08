@@ -1,11 +1,14 @@
 import logging
+import calendar
+from datetime import date
 from datetime import datetime
 from datetime import timedelta
 from harvest.auth import PersonalAccessAuthClient
 from harvest.api import TimeEntry
 from harvest.api import Projects
 from harvest.api import Tasks
-
+from harvest.api import UsersMe
+from harvest.api import UsersAssignments
 
 class BaseService(object):
 
@@ -49,11 +52,35 @@ class TimeRangeBaseService(BaseService):
         return resp
 
 
+class SingleDayTimeEntries(TimeRangeBaseService):
+
+    def set_date(self, date):
+        self.date = date
+
+    def get_date_range(self):
+        self.date_from = self.date
+        self.date_to = self.date
+        return (self.date_from, self.date_to)
+
+
 class Today(TimeRangeBaseService):
 
     def get_date_range(self):
         self.date_from = self.today.strftime('%Y-%m-%d')
         self.date_to = self.today.strftime('%Y-%m-%d')
+        return (self.date_from, self.date_to)
+
+
+class MonthTimeEntries(TimeRangeBaseService):
+
+    def set_month(self, year, month):
+        self.year = year
+        self.month = month
+        self.last_day = calendar.monthrange(year,month)[1]
+
+    def get_date_range(self):
+        self.date_from = date(self.year, self.month, 1)
+        self.date_to = date(self.year, self.month, self.last_day)
         return (self.date_from, self.date_to)
 
 
@@ -100,4 +127,26 @@ class AllTasks(BaseService):
         for i in range(1, total_pages + 1):
             resp = Tasks(client=self.client).get(page=i)
             ret += resp.json()['tasks']
+        return ret
+
+
+class CurrentUser(BaseService):
+
+    def get(self):
+        ret = []
+        resp = UsersMe(client=self.client).get()
+        return resp.json()
+
+
+class UsersAllAssignments(BaseService):
+
+    def all(self):
+        ret = []
+        resp = UsersMe(client=self.client).get()
+        user_id = resp.json()['id']
+        resp = UsersAssignments(client=self.client, user_id=user_id).get()
+        total_pages = resp.json()['total_pages']
+        for i in range(1, total_pages + 1):
+            resp = UsersAssignments(client=self.client, user_id=user_id).get(page=i)
+            ret += resp.json()['project_assignments']
         return ret

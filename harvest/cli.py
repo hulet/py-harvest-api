@@ -10,6 +10,8 @@ from harvest.api import Tasks
 from harvest.api import TimeEntry
 from harvest.services import AllProjects
 from harvest.services import AllTasks
+from harvest.services import UsersAllAssignments
+from harvest.services import UsersMe
 try:
     from ConfigParser import ConfigParser
 except ModuleNotFoundError as ex:
@@ -125,11 +127,17 @@ class ProjectList(BaseAction):
 
     def cmd(self, namespace):
         logger_hvt.debug(namespace)
-        for entity in AllProjects(cfg='harvest.cfg').all():
-            logger_hvt.info('#{}\t{}'.format(
-                entity['id'],
-                entity['name'], 
-                ))
+        resp = AllProjects(cfg='harvest.cfg').all()
+        if namespace.output == 'text':
+            for entity in resp:
+                logger_hvt.info('#{}\t{}'.format(
+                    entity['id'],
+                    entity['name'], 
+                    ))
+        elif namespace.output == 'json':
+            print(resp)
+        else:
+            print(resp)
 
 
 class TasksList(BaseAction):
@@ -141,6 +149,16 @@ class TasksList(BaseAction):
                 entity['id'],
                 entity['name'], 
                 ))
+
+
+class AssignmentList(BaseAction):
+
+    def cmd(self, namespace):
+        logger_hvt.debug(namespace)
+        for assignment in UsersAllAssignments(cfg='harvest.cfg').all():
+            logger_hvt.info(f"#{assignment['project']['id']}\t{assignment['project']['name']}")
+            for task in assignment['task_assignments']:
+                logger_hvt.info(f"\t#{task['task']['id']}\t{task['task']['name']}")
 
 
 if __name__ == '__main__':
@@ -165,11 +183,12 @@ if __name__ == '__main__':
     te_new_parser.add_argument('run', nargs=0, action=TimeEntryNew, help=argparse.SUPPRESS)
 
     # Projects (pj)
-    pj_parser = rt_sbparsers.add_parser('project')
+    pj_parser = rt_sbparsers.add_parser('projects')
     pj_sbparsers = pj_parser.add_subparsers(help='project entity management')
 
     # Projects (pj) actions
     pj_list_parser = pj_sbparsers.add_parser('list', help='retrieve a list of current projects')
+    pj_list_parser.add_argument('--output', type=str, default='text', help='output format')
     pj_list_parser.add_argument('run', nargs=0, action=ProjectList, help=argparse.SUPPRESS)
 
     # Tasks (tk)
@@ -179,5 +198,16 @@ if __name__ == '__main__':
     # Tasks (tk) actions
     tk_list_parser = tk_sbparser.add_parser('list', help='retrieve a list of registered tasks')
     tk_list_parser.add_argument('run', nargs=0, action=TasksList, help=argparse.SUPPRESS)
+
+    # Users (us)
+    us_parser = rt_sbparsers.add_parser('users')
+    us_sbparser = us_parser.add_subparsers(help='users management')
+
+    # Users Assignments (as)
+    us_as_parser = us_sbparser.add_parser('assignments')
+    us_as_sbparser = us_as_parser.add_subparsers(help="user's tasks management")
+
+    us_as_list_parser = us_as_sbparser.add_parser('list')
+    us_as_list_parser.add_argument('run', nargs=0, action=AssignmentList, help=argparse.SUPPRESS)
 
     args = rt_parser.parse_args()
