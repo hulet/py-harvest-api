@@ -11,7 +11,7 @@ python=$(env)/python
 
 lint=$(env)/flake8
 lint_args=--builtins=ModuleNotFoundError
-build_mode=sdist bdist_wheel
+build_mode=bdist_wheel
 
 build:
 ifeq ($(shell $(lint) harvest $(lint_args)),)
