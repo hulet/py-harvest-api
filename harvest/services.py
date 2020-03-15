@@ -63,7 +63,8 @@ class MonthTimeEntries(TimeRangeBaseService):
     def get_date_range(self):
         self.date_from = date(self.year, self.month, 1)
         self.date_to = date(self.year, self.month, self.last_day)
-        return (self.date_from, self.date_to)
+        return (self.date_from.strftime("%Y-%m-%d"),
+            self.date_to.strftime("%Y-%m-%d"))
 
 
 class CurrentWeekTimeEntries(TimeRangeBaseService):
