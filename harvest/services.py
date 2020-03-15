@@ -2,11 +2,11 @@ import calendar
 from datetime import date
 from datetime import datetime
 from datetime import timedelta
-from harvest.api import TimeEntry
-from harvest.api import Projects
-from harvest.api import Tasks
-from harvest.api import UsersMe
-from harvest.api import UsersAssignments
+from harvest.endpoints import TimeEntry
+from harvest.endpoints import Projects
+from harvest.endpoints import Tasks
+from harvest.endpoints import UsersMe
+from harvest.endpoints import UsersAssignments
 
 
 class BaseService(object):

@@ -1,5 +1,5 @@
 from unittest import TestCase
-from harvest.api import *
+from harvest.endpoints import *
 from harvest.credentials import PersonalAccessAuthConfigCredential
 
 
