@@ -6,7 +6,7 @@
 
 ## Setup
 
-`pip install git+https://github.com/vyscond/py-harvest-api.git@latest`
+`pip install harvest_api`
 
 ## Usage
 
