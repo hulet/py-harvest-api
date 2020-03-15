@@ -1,5 +1,8 @@
-__version__ = '0.1.0a0'
+import os
+import logging
 
+LOGLEVEL = os.environ.get("HARVEST_LOGLEVEL", "INFO")
+logging.basicConfig(level=LOGLEVEL)
+logger = logging.getLogger("Harvest API")
 
-if __name__ == '__main__':
-    print(__version__)
+__version__ = "0.1.0a1"

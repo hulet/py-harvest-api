@@ -1,18 +1,14 @@
-import os
 import requests
-import logging
-
-
-LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO')
-logging.basicConfig(level=LOGLEVEL)
-logger = logging.getLogger('Harvest API')
+from harvest import logger
 
 
 class Endpoint(object):
-
-    def __init__(self, client, *args, **kwargs):
-        self.client = client
+    def __init__(self, credential, *args, **kwargs):
+        self.credential = credential
         self.path_vars = kwargs
+
+    def get_domain(self):
+        return self.domain
 
     def get_path(self):
         if self.path_vars:
@@ -20,76 +16,105 @@ class Endpoint(object):
         return self.path
 
     def get_url(self):
-        return '{}{}'.format(
-            self.client.get_base_api_url(),
-            self.get_path(),
-        )
+        return "{}{}".format(self.get_domain(), self.get_path())
+
+    def get_headers(self):
+        return self.headers or {}
 
     def get(self, *args, **kwargs):
-        url = self.get_url()
-        params = kwargs.get('params', {})
-        headers = self.client.get_headers()
-        headers.update(kwargs.get('headers', {}))
-        logger.debug('HTTP - GET - Request - URL {}'.format(url))
-        logger.debug('HTTP - GET - Request - Params '.format(params))
-        logger.debug('HTTP - GET - Request - Headers {}'.format(headers))
-        resp = requests.get(
-            url=url,
-            headers=headers,
-            params=params,
-        )
-        logger.debug('HTTP - GET - Response - status code - {}'.format(
-            resp.status_code))
-        logger.debug('HTTP - GET - Response - content - {}'.format(
-            resp.content))
-        return resp
+        return self.request("get", *args, **kwargs)
 
     def post(self, *args, **kwargs):
-        url = self.get_url()
-        params = kwargs.get('params', {})
-        data = kwargs.get('data', {})
-        headers = self.client.get_headers()
-        logger.debug('HTTP - POST - URL {}'.format(url))
-        logger.debug('HTTP - POST - Params '.format(params))
-        logger.debug('HTTP - POST - Headers {}'.format(headers))
-        resp = requests.post(
-            url=url,
-            headers=headers,
-            params=params,
-            data=data,
-        )
-        logger.debug('HTTP - POST - Response {}'.format(resp.content))
-        return resp
+        return self.request("post", *args, **kwargs)
 
     def patch(self, *args, **kwargs):
+        return self.request("patch", *args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        return self.request("delete", *args, **kwargs)
+
+    def request(self, http_method, *args, **kwargs):
+        verb = http_method
         url = self.get_url()
-        params = kwargs.get('params', {})
-        data = kwargs.get('data', {})
-        headers = self.client.get_headers()
-        headers.update(kwargs.get('headers', {}))
-        logger.debug('HTTP - PATCH - Request - URL {}'.format(url))
-        logger.debug('HTTP - PATCH - Request - Params '.format(params))
-        logger.debug('HTTP - PATCH - Request - Headers {}'.format(headers))
-        resp = requests.patch(
-            url=url,
-            headers=headers,
-            params=params,
+        params = self.credential.get_params()
+        params.update(kwargs.get("params", {}))
+        headers = self.credential.get_headers()
+        headers.update(kwargs.get("headers", {}))
+        data = kwargs.get("data", {})
+        logger.debug("HTTP - {} - Request - URL {}".format(verb, url))
+        logger.debug("HTTP - {} - Request - Params ".format(verb, params))
+        logger.debug("HTTP - {} - Request - Headers {}".format(verb, headers))
+        fn = getattr(requests, verb)
+        if data:
+            resp = fn(url=url, headers=headers, params=params, data=data,)
+        else:
+            resp = fn(url=url, headers=headers, params=params,)
+        logger.debug(
+            "HTTP - {} - Response - status code - {}".format(
+                verb, resp.status_code
+                )
         )
-        logger.debug('HTTP - PATCH - Response - status code - {}'.format(
-            resp.status_code))
-        logger.debug('HTTP - PATCH - Response - content - {}'.format(
-            resp.content))
+        logger.debug(
+            "HTTP - {} - Response - content - {}".format(verb, resp.content)
+        )
         return resp
 
 
-class Users(Endpoint):
+class OAuth2Endpoint(Endpoint):
 
-    path = '/users'
+    domain = "https://id.getharvest.com"
 
 
-class UsersMe(Endpoint):
+class OAuth2AccessTokenEndpoint(OAuth2Endpoint):
 
-    '''
+    """
+    Request:
+        POST (exchange authorization code):
+            code=$AUTHORIZATION_CODE"
+            client_id=$CLIENT_ID"
+            client_secret=$CLIENT_SECRET"
+            grant_type=authorization_code"
+
+        POST (refresh token):
+            "refresh_token=$REFRESH_TOKEN"
+            "client_id=$CLIENT_ID"
+            "client_secret=$CLIENT_SECRET"
+            "grant_type=refresh_token"
+
+    Response:
+        POST:
+            {
+              "access_token":  "{ACCESS_TOKEN}",
+              "refresh_token": "{REFRESH_TOKEN}",
+              "token_type":    "bearer",
+              "expires_in":    1209600
+            }
+    """
+
+    path = "/api/v2/oauth2/token"
+
+    def post(self, *args, **kwargs):
+        if kwargs.get("grant_type") == "refresh_token":
+            self.headers.update({"Accept": "application/json"})
+        super(OAuth2AccessTokenEndpoint, self).post(*args, **kwargs)
+
+
+class ApiEndpoint(Endpoint):
+
+    domain = "https://api.harvestapp.com/v2"
+    headers = {
+        "Accept": "application/json",
+    }
+
+
+class UsersEndpoint(ApiEndpoint):
+
+    path = "/users"
+
+
+class UsersMeEndpoint(ApiEndpoint):
+
+    """
     Entity:
         {
             "id":1782884,
@@ -116,26 +141,26 @@ class UsersMe(Endpoint):
         }
     HTTP Methods:
         GET:
-    '''
+    """
 
-    path = '/users/me'
-
-
-class UsersAssignments(Endpoint):
-
-    path = '/users/{user_id}/project_assignments'
+    path = "/users/me"
 
 
-class Projects(Endpoint):
+class UsersAssignmentsEndpoint(ApiEndpoint):
 
-    path = '/projects'
+    path = "/users/{user_id}/project_assignments"
 
 
-class Tasks(Endpoint):
+class ProjectsEndpoint(ApiEndpoint):
 
-    path = '/tasks'
+    path = "/projects"
 
-    '''
+
+class TasksEndpoint(ApiEndpoint):
+
+    path = "/tasks"
+
+    """
     Entity:
         {
           "id":8083800,
@@ -166,14 +191,14 @@ class Tasks(Endpoint):
                 and 100. (Default: 100)
 
         POST:
-    '''
+    """
 
 
-class TimeEntry(Endpoint):
+class TimeEntryEndpoint(ApiEndpoint):
 
-    path = '/time_entries'
+    path = "/time_entries"
 
-    '''
+    """
     HTTP Methods:
         GET:
             user_id (integer):
@@ -228,14 +253,14 @@ class TimeEntry(Endpoint):
             external_reference (object / optional):
                 An object containing the id, group_id, and permalink of the
                 external reference.
-    '''
+    """
 
 
-class TimeEntryUpdate(Endpoint):
+class TimeEntryUpdateEndpoint(ApiEndpoint):
 
-    path = '/time_entries/{time_entry_id}'
+    path = "/time_entries/{time_entry_id}"
 
-    '''
+    """
     HTTP Methods:
         PATCH:
             user_id (integer / optional):
@@ -257,14 +282,14 @@ class TimeEntryUpdate(Endpoint):
             external_reference (object / optional):
                 An object containing the id, group_id, and permalink of the
                 external reference.
-    '''
+    """
 
 
-class TimeEntryStop(Endpoint):
+class TimeEntryStopEndpoint(ApiEndpoint):
 
-    path = '/time_entries/{time_entry_id}/stop'
+    path = "/time_entries/{time_entry_id}/stop"
 
-    '''
+    """
     HTTP Methods:
         PATCH:
             user_id (integer / optional):
@@ -286,14 +311,14 @@ class TimeEntryStop(Endpoint):
             external_reference (object / optional):
                 An object containing the id, group_id, and permalink of the
                 external reference.
-    '''
+    """
 
 
-class TimeEntryRestart(Endpoint):
+class TimeEntryRestartEndpoint(ApiEndpoint):
 
-    path = '/time_entries/{time_entry_id}/restart'
+    path = "/time_entries/{time_entry_id}/restart"
 
-    '''
+    """
     HTTP Methods:
         PATCH:
             user_id (integer / optional):
@@ -315,4 +340,4 @@ class TimeEntryRestart(Endpoint):
             external_reference (object / optional):
                 An object containing the id, group_id, and permalink of the
                 external reference.
-    '''
+    """

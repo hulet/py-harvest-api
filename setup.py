@@ -8,7 +8,7 @@ setup(
     version=__version__,
     description='Harvest API',
     long_description="".join(open("README.md")),
-    url="https://github.com/vyscond/harvest",
+    url="https://github.com/vyscond/py-harvest-api",
     license="MIT",
     packages=[
         "harvest"
@@ -16,10 +16,5 @@ setup(
     install_requires=[
         'requests==2.19.1'
     ],
-    # entry_points={
-    #     "console_scripts": [
-    #         "harvest=harvest.cli:main"
-    #     ]
-    # }
 )
 

@@ -1,82 +1,64 @@
-import logging
 import calendar
 from datetime import date
 from datetime import datetime
 from datetime import timedelta
-from harvest.auth import PersonalAccessAuthClient
 from harvest.api import TimeEntry
 from harvest.api import Projects
 from harvest.api import Tasks
 from harvest.api import UsersMe
 from harvest.api import UsersAssignments
 
-class BaseService(object):
 
-    def __init__(self, personal_token=None, account_id=None, cfg=None):
-        self.client = PersonalAccessAuthClient(
-            personal_token,
-            account_id,
-            cfg,
-        )
+class BaseService(object):
+    def __init__(self, credential):
+        self.credential = credential
 
 
 class TimeRangeBaseService(BaseService):
-
-    def __init__(self, personal_token=None, account_id=None):
-        super(TimeRangeBaseService, self).__init__(personal_token, account_id)
+    def __init__(self, credential):
         self.today = datetime.now()
+        super(TimeRangeBaseService, self).__init__(credential)
 
     def get_date_range(self):
-        pass
+        raise NotImplementedError
 
     def all(self, page=1):
         date_range = self.get_date_range()
-        logging.debug(
-            'Quering from {} to {}'.format(date_range[0], date_range[1])
-        )
-        api = TimeEntry(client=self.client)
-        resp = api.get(params={
-            'from': date_range[0],
-            'to': date_range[1],
-        })
-        logging.debug('Encoding = {}'.format(resp.encoding))
+        api = TimeEntry(credential=self.credential)
+        resp = api.get(params={"from": date_range[0], "to": date_range[1]})
         return resp.json()
 
     def blanks(self):
         resp = self.all()
         empty_time_entries = []
-        for entry in resp['time_entries']:
-            if not entry['notes']:
+        for entry in resp["time_entries"]:
+            if not entry["notes"]:
                 empty_time_entries.append(entry)
-        resp['time_entries'] = empty_time_entries
+        resp["time_entries"] = empty_time_entries
         return resp
 
 
 class SingleDayTimeEntries(TimeRangeBaseService):
-
-    def set_date(self, date):
+    def __init__(self, credential, date):
         self.date = date
+        super(SingleDayTimeEntries, self).__init__(credential)
 
     def get_date_range(self):
-        self.date_from = self.date
-        self.date_to = self.date
-        return (self.date_from, self.date_to)
+        return (self.date, self.date)
 
 
-class Today(TimeRangeBaseService):
-
+class TodayTimeEntries(TimeRangeBaseService):
     def get_date_range(self):
-        self.date_from = self.today.strftime('%Y-%m-%d')
-        self.date_to = self.today.strftime('%Y-%m-%d')
+        self.date_from = self.today.strftime("%Y-%m-%d")
+        self.date_to = self.today.strftime("%Y-%m-%d")
         return (self.date_from, self.date_to)
 
 
 class MonthTimeEntries(TimeRangeBaseService):
-
     def set_month(self, year, month):
         self.year = year
         self.month = month
-        self.last_day = calendar.monthrange(year,month)[1]
+        self.last_day = calendar.monthrange(year, month)[1]
 
     def get_date_range(self):
         self.date_from = date(self.year, self.month, 1)
@@ -84,69 +66,64 @@ class MonthTimeEntries(TimeRangeBaseService):
         return (self.date_from, self.date_to)
 
 
-class CurrentWeek(TimeRangeBaseService):
-
+class CurrentWeekTimeEntries(TimeRangeBaseService):
     def get_date_range(self):
-        self.date_from = (self.today - timedelta(days=self.today.weekday()))
-        self.date_to = (self.date_from + timedelta(days=6)).strftime(
-            '%Y-%m-%d')
-        self.date_from = self.date_from.strftime('%Y-%m-%d')
+        self.date_from = self.today - timedelta(days=self.today.weekday())
+        self.date_to = self.date_from + timedelta(days=6)
+        self.date_from = self.date_from.strftime("%Y-%m-%d")
+        self.date_to = self.date_to.strftime("%Y-%m-%d")
         return (self.date_from, self.date_to)
 
 
-class PreviousWeek(TimeRangeBaseService):
-
+class PreviousWeekTimeEntries(TimeRangeBaseService):
     def get_date_range(self):
-        # Today from last week
         self.today = self.today - timedelta(days=(6 - self.today.weekday()))
-        self.date_from = (self.today - timedelta(days=self.today.weekday()))
-        self.date_to = (self.date_from + timedelta(days=6)).strftime(
-            '%Y-%m-%d')
-        self.date_from = self.date_from.strftime('%Y-%m-%d')
-        return (self.date_from, self.date_to)
+        self.date_from = self.today - timedelta(days=self.today.weekday())
+        self.date_to = self.date_from + timedelta(days=6)
+        return (
+            self.date_from.strftime("%Y-%m-%d"),
+            self.date_to.strftime("%Y-%m-%d"),
+            )
 
 
 class AllProjects(BaseService):
-
     def all(self):
+        resp = Projects(credential=self.credential).get()
+        total_pages = resp.json()["total_pages"]
         ret = []
-        resp = Projects(client=self.client).get()
-        total_pages = resp.json()['total_pages']
         for i in range(1, total_pages + 1):
-            resp = Projects(client=self.client).get(page=i)
-            ret += resp.json()['projects']
+            resp = Projects(credential=self.credential).get(page=i)
+            ret += resp.json()["projects"]
         return ret
 
 
 class AllTasks(BaseService):
-
     def all(self):
+        resp = Tasks(credential=self.credential).get()
+        total_pages = resp.json()["total_pages"]
         ret = []
-        resp = Tasks(client=self.client).get()
-        total_pages = resp.json()['total_pages']
         for i in range(1, total_pages + 1):
-            resp = Tasks(client=self.client).get(page=i)
-            ret += resp.json()['tasks']
+            resp = Tasks(credential=self.credential).get(page=i)
+            ret += resp.json()["tasks"]
         return ret
 
 
 class CurrentUser(BaseService):
-
     def get(self):
-        ret = []
-        resp = UsersMe(client=self.client).get()
+        resp = UsersMe(credential=self.credential).get()
         return resp.json()
 
 
 class UsersAllAssignments(BaseService):
-
     def all(self):
         ret = []
-        resp = UsersMe(client=self.client).get()
-        user_id = resp.json()['id']
-        resp = UsersAssignments(client=self.client, user_id=user_id).get()
-        total_pages = resp.json()['total_pages']
+        resp = UsersMe(credential=self.credential).get()
+        user_id = resp.json()["id"]
+        resp = UsersAssignments(
+            credential=self.credential, user_id=user_id).get()
+        total_pages = resp.json()["total_pages"]
         for i in range(1, total_pages + 1):
-            resp = UsersAssignments(client=self.client, user_id=user_id).get(page=i)
-            ret += resp.json()['project_assignments']
+            resp = UsersAssignments(
+                credential=self.credential, user_id=user_id).get(page=i)
+            ret += resp.json()["project_assignments"]
         return ret
