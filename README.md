@@ -6,104 +6,97 @@
 
 ## Setup
 
-`pip install git+https://github.com/vyscond/python-harvest.git@latest`
+`pip install git+https://github.com/vyscond/py-harvest-api.git@latest`
 
 ## Usage
 
-### Core Client
+### API Endpoints
 
-Note that all the api objects will always return an "Response" object from
-requests library
+_Note: that all the api objects will always return an "Response" object from
+requests library_
 
-- Querying time entries
+- Getting current authenticated User profile
 
 ```
-from harvest.auth import PersonalAccessAuthClient
-from harvest.api import TimeEntry
+from harvest.credential import PersonalAccessAuthCredential
+from harvest.api import UsersMeEndpoint
 
-client = PersonalAccessAuthClient(
-    personal_token,
-    account_id,
+credential = PersonalAccessAuthCredential(
+    personal_token='xyz',
+    account_id='123',
 )
 
+resp = UsersMeEndpoint(credential).get()
 
-api = TimeEntry(client=self.client)
-resp = api.get(params={
+print(resp.status_code)
+print(resp.json())
+```
+
+- Querying time entries from two days range
+
+```
+from harvest.credential import PersonalAccessAuthCredential
+from harvest.api import TimeEntryEndpoint
+
+credential = PersonalAccessAuthCredential(
+    personal_token='xyz',
+    account_id='123',
+)
+
+resp = TimeEntryEndpoint(credential).get(params={
     'from': '1972-01-01',
     'to': '1972-01-02',
 })
+
+print(resp.status_code)
+print(resp.json())
 ```
 
 ### Services (Common Routines)
 
-### Module CLI
+On services the return is a dictionary
 
-#### Configuration File
+- Querying today's time entries
+
+```
+from harvest.credential import PersonalAccessAuthCredential
+from harvest.services import TodayTimeEntries
+
+credential = PersonalAccessAuthCredential(
+    personal_token='xyz',
+    account_id='123',
+)
+
+resp = TodayTimeEntries(credential).get()
+
+print(resp)
+```
+
+## Credentials
+
+Normally you will use `PersonalAccessAuthCredential` or `OAuth2Credential` for
+your project.
+
+But for Personal Access flow two helper classes were added:
+
+- PersonalAccessAuthConfigCredential
+- PersonalAccessAuthEnvCredential
+
+They're only here to help on the early stage of the developing process of other
+tools using this lib. _(way easier then managing OAuth2 whole flow. Especially
+for CLI projects)_
+
+If you pick up `PersonalAccessAuthConfigCredential` then create a `harvest.cfg`
+with:
 
 ```
 [authentication]
 token=(\w|\.\-)+
 account_id=[0-9]+
-
-[projects]
-project_0=[0-9]+
-project_1=[0-9]+
-
-[tasks]
-meeting=[0-9]+
-development=[0-9]+
 ```
 
-#### Usage
-
-- Get all projects
-
-```
-python -m harvest.cli projects get all
-```
-
-- Get all tasks
-
-This one is currently not working with the personal token.
-
-```
-python -m harvest.cli tasks get all
-```
-
-- Create time entry
-
-```
-python -m harvest.cli timeentry new [entry note] [date] [task id] [project id] [hours]
-```
-
-Examples:
-
-- 30 Minutes of meeting on project_0
-
-```
-python -m harvest.cli timeentry new "Hello world" today meeting project_0 0:30
-```
-
-or
-
-```
-python -m harvest.cli timeentry new "Hello world" today meeting project_0 0.50
-```
-
-- 30m of development for each project_0 and project_1
-
-Every time we try to split the amount of hours between the number of projects
-that are passed through the args
-
-```
-python -m harvest.cli timeentry new "Hello world" today development project_0,project_1 1:00
-```
-
-or
-
-```
-python -m harvest.cli timeentry new "Hello world" today development project_0,project_1 1.00
-```
+[This](https://help.getharvest.com/api-v2/authentication-api/authentication/authentication/#personal-access-tokens)
+is how you can get the `token` and `account_id`
 
 ## Tests
 
