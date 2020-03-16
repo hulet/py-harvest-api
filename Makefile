@@ -22,4 +22,3 @@ endif
 
 test:
 	$(python) -m unittest tests
-	
