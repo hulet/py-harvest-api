@@ -2,11 +2,11 @@ import calendar
 from datetime import date
 from datetime import datetime
 from datetime import timedelta
-from harvest.endpoints import TimeEntry
-from harvest.endpoints import Projects
-from harvest.endpoints import Tasks
-from harvest.endpoints import UsersMe
-from harvest.endpoints import UsersAssignments
+from harvest.endpoints import TimeEntryEndpoint
+from harvest.endpoints import ProjectsEndpoint
+from harvest.endpoints import TasksEndpoint
+from harvest.endpoints import UsersMeEndpoint
+from harvest.endpoints import UsersAssignmentsEndpoint
 
 
 class BaseService(object):
@@ -24,7 +24,7 @@ class TimeRangeBaseService(BaseService):
 
     def all(self, page=1):
         date_range = self.get_date_range()
-        api = TimeEntry(credential=self.credential)
+        api = TimeEntryEndpoint(credential=self.credential)
         resp = api.get(params={"from": date_range[0], "to": date_range[1]})
         return resp.json()
 
@@ -91,42 +91,42 @@ class PreviousWeekTimeEntries(TimeRangeBaseService):
 
 class AllProjects(BaseService):
     def all(self):
-        resp = Projects(credential=self.credential).get()
+        resp = ProjectsEndpoint(credential=self.credential).get()
         total_pages = resp.json()["total_pages"]
         ret = []
         for i in range(1, total_pages + 1):
-            resp = Projects(credential=self.credential).get(page=i)
+            resp = ProjectsEndpoint(credential=self.credential).get(page=i)
             ret += resp.json()["projects"]
         return ret
 
 
 class AllTasks(BaseService):
     def all(self):
-        resp = Tasks(credential=self.credential).get()
+        resp = TasksEndpoint(credential=self.credential).get()
         total_pages = resp.json()["total_pages"]
         ret = []
         for i in range(1, total_pages + 1):
-            resp = Tasks(credential=self.credential).get(page=i)
+            resp = TasksEndpoint(credential=self.credential).get(page=i)
             ret += resp.json()["tasks"]
         return ret
 
 
 class CurrentUser(BaseService):
     def get(self):
-        resp = UsersMe(credential=self.credential).get()
+        resp = UsersMeEndpoint(credential=self.credential).get()
         return resp.json()
 
 
 class UsersAllAssignments(BaseService):
     def all(self):
         ret = []
-        resp = UsersMe(credential=self.credential).get()
+        resp = UsersMeEndpoint(credential=self.credential).get()
         user_id = resp.json()["id"]
-        resp = UsersAssignments(
+        resp = UsersAssignmentsEndpoint(
             credential=self.credential, user_id=user_id).get()
         total_pages = resp.json()["total_pages"]
         for i in range(1, total_pages + 1):
-            resp = UsersAssignments(
+            resp = UsersAssignmentsEndpoint(
                 credential=self.credential, user_id=user_id).get(page=i)
             ret += resp.json()["project_assignments"]
         return ret
