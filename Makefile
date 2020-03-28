@@ -4,7 +4,13 @@
 
 env=$$PWD/env/bin
 python=$(env)/python
+git_branch=$(shell git rev-parse --abbrev-ref HEAD)
+git_version=$(shell git rev-parse --abbrev-ref HEAD | cut -b 9-)
+pypi_url=https://test.pypi.org/legacy/
 
+ifeq ($(pypi),production)
+	pypi_url=https://upload.pypi.org/legacy/
+endif
 
 # Building
 # -----------------------------------------------------------------------------
@@ -22,3 +28,9 @@ endif
 
 test:
 	$(python) -m unittest tests
+
+publish: build
+	git push origin $(git_branch)
+	twine upload \
+		--repository-url $(pypi_url) \
+		dist/harvest_api-$(git_version)-py3-none-any.whl
