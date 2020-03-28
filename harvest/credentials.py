@@ -65,13 +65,15 @@ class PersonalAccessAuthEnvCredential(Credential):
 
 
 class OAuth2Credential(Credential):
-    def __init__(self, access_token):
+    def __init__(self, access_token, scope):
         self.access_token = access_token
+        self.scope = scope
 
     def get_headers(self):
         ret = {
             "Authorization": f"Bearer {self.access_token}",
             "User-Agent": USER_AGENT,
+            "Harvest-Account-Id": self.scope,
         }
         logger.debug(ret)
         return ret
