@@ -1,6 +1,6 @@
 import os
 import logging
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 __name__ = 'harvest_api'
 __author__ = 'Ramon Moraes'
 __author_email__ = 'ramonmoraes8080@gmail.com'
