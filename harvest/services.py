@@ -130,3 +130,24 @@ class UsersAllAssignments(BaseService):
                 credential=self.credential, user_id=user_id).get(page=i)
             ret += resp.json()["project_assignments"]
         return ret
+
+
+class WeekTimeEntriesService(TimeRangeBaseService):
+
+    def __init__(self, credential, date):
+        """
+        Params:
+            credential (harvest.credentials.OAuth2Credential):
+            date (datetime.datetime):
+        """
+        super(WeekTimeEntriesService, self).__init__(credential)
+        self.date = date
+
+    def get_date_range(self):
+        start = self.date + timedelta(0 - self.date.weekday())
+        end = self.date + timedelta(6 - self.date.weekday())
+        ret = (
+            start.date(),
+            end.date(),
+        )
+        return ret
