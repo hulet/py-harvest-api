@@ -1,5 +1,5 @@
 import os
-import logging
+import adafruit_logging as logging
 __version__ = '0.2.1'
 __name__ = 'harvest_api'
 __author__ = 'Ramon Moraes'
