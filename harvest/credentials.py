@@ -1,5 +1,4 @@
 import os
-from configparser import ConfigParser
 from harvest import logger
 
 
@@ -31,13 +30,14 @@ class PersonalAccessAuthCredential(Credential):
 
 class PersonalAccessAuthConfigCredential(Credential):
     def __init__(self, config_path=None):
-        config_path = config_path or os.environ.get(
-            "HARVEST_CFG", os.path.expanduser("~/.harvest.cfg"),
-        )
-        config = ConfigParser()
-        config.read(config_path)
-        self.token = config.get("authentication", "token")
-        self.account_id = config.get("authentication", "account_id")
+        try:
+            from secrets import secrets
+        except ImportError:
+            print("Harvest secrets are kept in secrets.py, please add them there!")
+            raise
+    
+        self.token = secrets["harvest_token"]
+        self.account_id = secrets["harvest_account_id"]
 
     def get_headers(self):
         ret = {
