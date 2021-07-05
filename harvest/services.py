@@ -1,4 +1,3 @@
-import calendar
 from datetime import date
 from datetime import datetime
 from datetime import timedelta
@@ -56,9 +55,7 @@ class TodayTimeEntries(TimeRangeBaseService):
 
 class MonthTimeEntries(TimeRangeBaseService):
     def set_month(self, year, month):
-        self.year = year
-        self.month = month
-        self.last_day = calendar.monthrange(year, month)[1]
+        raise NotImplementedError
 
     def get_date_range(self):
         self.date_from = date(self.year, self.month, 1)
