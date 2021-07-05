@@ -1,4 +1,4 @@
-import requests
+import adafruit_requests as requests
 from harvest import logger
 
 
